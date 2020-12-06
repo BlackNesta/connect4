@@ -15,6 +15,8 @@
 
 int **board, *jucator;
 
+
+// initial tabla este goala
 static void initializareTabla(int board[6][7]) {
     for (int i = 0; i < 6; i++) {
         for (int j = 0; j < 7; j++) {
@@ -23,6 +25,8 @@ static void initializareTabla(int board[6][7]) {
     }
 }
 
+
+// transform din numere in piese pe diferite culori 
 static wchar_t transformaInPiesa(int piesa) {
     if (piesa == 0) {
         return GOL;
@@ -109,6 +113,7 @@ void executaComanda(char *comanda, int board[6][7], int jucator) {
         
         FILE *helpFile;
         
+        // #todo send raspunsuri pentru fiecare instanta
         if ((helpFile = fopen("help.txt", "r")) == NULL) {
             printf("Error! Nu se poate deschide fisierul `help.txt` \n");
             exit(1);
@@ -121,12 +126,52 @@ void executaComanda(char *comanda, int board[6][7], int jucator) {
     } else {
         int col = comanda - '0';
         if (!mutareValida(board, col)) {
+
             printf("Coloana %d este plina. Introduceti alta mutare!");
         } else {
             adaugaPiesa(board, col, jucator);
             jucator = 1 - jucator;
         }
     }
+    // todo send table 
+}
+
+bool JocTerminat(int table[6][7]) {
+    // verific daca unul din jucatori a castigat
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 4; j) {
+            int x = table[i][j];
+            int linie  = 1;
+            int coloana = 1;
+            int diagonala = 1;
+            for (int k = 1; k <= 3; k++) {
+                if (table[i][j + k] == x) {
+                    linie++;
+                }
+                if (table[i + k][j] == x) {
+                    coloana++;
+                }
+                if (table[i + k][j + k] == x) {
+                    coloana++;
+                }
+            }
+            if (linie == 4 || coloana == 4 || diagonala == 4) {
+                // todo send winer;
+                return true;
+            }
+        }
+    }
+
+    // verfic daca se mai pot adauga piese
+    for (int i = 0; i < 7; i++) {
+        if (table[0][i] == 0) return false;
+    }
+
+    // daca nimeni nu castigat si se mai pot adauga piese inseamna ca jocul s-a terminat cu egalitate
+    // todo send draw
+    
+    return true;
+
 }
 
 int main() {
