@@ -39,24 +39,22 @@ int main(int argc, char *argv[]) {
     return errno;
   }
 
-  bzero(msg, 100);
-  printf("[client]Enter your name: ");
-  fflush(stdout);
-  read(0, msg, 100);
-
-  // send message to server
-
-  if (write(sd, msg, 100) <= 0) {
-    perror("[client]Write error.\n");
-    return errno;
-  }
-
   if (read (sd, msg, 100) < 0) {
-    perror("[client]Read error\n");
-    return errno;
+      perror("[client]Read error\n");
+      return errno;
   }
+  printf("[client]%s", msg);
 
-  printf("[client]Message recived is: %s\n", msg);
-  close (sd);
+  while(1) {
+    bzero(msg, 100);
+    fflush(stdout);
 
+    if (read (sd, msg, 100) < 0) {
+      perror("[client]Read error\n");
+      return errno;
+    }
+
+    printf("[client]%s\n", msg);
+    close (sd);
+  }
 }
