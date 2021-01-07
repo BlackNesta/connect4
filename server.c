@@ -12,25 +12,30 @@
 
 #define MAX_CLIENTS 200
 #define BUFFER_SIZE 4096
-#define PORT 8089
+#define PORT 8080
 
 extern int errno;
 
-typedef struct thData
-{
+typedef struct thData {
   int id;
-  int player1;
-  int player2;
-}thData;
+  int player[2];
+} thData;
 
 static void *Treat(void *); // functia executata de fiecare thread ce realizeaza comunicarea cu clientii
-void Raspunde(void *);
+static void initializareTabla(int board[6][7]);
+bool validareInput(char *input);
+bool mutareValida(int board[6][7], int coloana);
+void PlayGame(void *);
+void adaugaPiesa(int board[6][7], int coloana, int jucator);
+int JocTerminat(int board[6][7], int player);
+
 
 bool playing[200];
 int clients[200];
 int waitingQ = 0;
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[]) 
+{
   struct sockaddr_in server; // server structure
   struct sockaddr_in from;
   char ans[100] = "";
@@ -89,27 +94,29 @@ int main(int argc, char *argv[]) {
       td = (struct thData*)malloc(sizeof(struct thData));	
       td->id = threads++;
       for (i = 0; i < 200 && playing[i] != 0; i++);
-      td->player1 = clients[i];
+      td->player[0] = clients[i];
       playing[i] = 1;
-      bzero(ans, 100);
-      strcat(ans, "You are Player1");
+      bzero(&ans, 100);
+      strcat(ans, "You are Player1\n");
       if (write (clients[i], ans, 100) <= 0)
       {
         perror ("[server]Eroare la write() catre client.\n");
-        continue;		/* continuam sa ascultam */
+        continue;		
       }
     }
     else if (waitingQ == 2) {
       for (i = 0; i < 200 && playing[i] != 0; i++);
-      td->player2 = clients[i];
+      td->player[1] = clients[i];
       playing[i] = 1;
-      strcat(ans, "You are Player2");
+      bzero(&ans, 100);
+      strcat(ans, "You are Player2\n");
       if (write (clients[i], ans, 100) <= 0)
       {
         perror ("[server]Eroare la write() catre client.\n");
-        continue;		/* continuam sa ascultam */
+        continue;		
       }
       waitingQ = 0;
+      sleep(1);
       pthread_create(&th[threads], NULL, &Treat, td);
     }
   }
@@ -122,35 +129,193 @@ static void *Treat(void * arg)
 		tdL= *((struct thData*)arg);	
 		fflush (stdout);		 
 		pthread_detach(pthread_self());		
-		Raspunde((struct thData*)arg);
+		PlayGame((struct thData*)arg);
 		/* am terminat cu acest client, inchidem conexiunea */
 		close ((intptr_t)arg);
 		return(NULL);	
   		
 };
 
+static void initializareTabla(int board[6][7]) {
+    for (int i = 0; i < 6; i++) {
+        for (int j = 0; j < 7; j++) {
+            board[i][j] = 0;
+        }
+    }
+}
 
-void Raspunde(void *arg)
+bool validareInput(char *input) {
+    if (strcmp(input, "0") > 0 && strcmp(input, "8") < 0) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool mutareValida(int board[6][7], int coloana) {
+    if (board[0][coloana - 1] == 0) {
+        return true;
+    }
+    return false;
+}
+
+void adaugaPiesa(int board[6][7], int coloana, int jucator) {
+    int linie = 5;
+    while (board[linie][coloana - 1] != 0) {
+        linie--;
+    }
+    board[linie][coloana - 1] = jucator;
+}
+
+int JocTerminat(int board[6][7], int player) {
+    // verific daca unul din jucatori a castigat
+    //verific pe linie
+    for (int i = 0; i < 6; i++)
+      for (int j = 0; j < 4; j++) 
+        if (board[i][j] == player) {
+          int row = 1;
+          for (int k = 1; k <= 3; k++) 
+            if (board[i][j + k] == player)
+              row++;
+          if (row == 4) return 1;
+        }
+    // verific pe coloana
+    for (int j = 0; j < 7; j++)
+      for (int i = 0; i < 3; i++)
+        if (board[i][j] == player) {
+          int col = 1;
+          for (int k = 1; k <= 3; k++) 
+            if (board[i + k][j] == player)
+              col++;
+          if (col == 4) return 1;
+        }
+    // verific diagonala principala
+    for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 4; j++)
+            if (board[i][j] == player) {
+              int diag = 1;
+              for (int k = 1; k <= 3; k++)
+                if (board[i + k][j + k] == player)
+                  diag++;
+              if (diag == 4) return 1;
+            }
+    // verific diagonala secundara
+    for (int i = 3; i < 6; i++)
+        for (int j = 0; j < 4; j++)
+            if (board[i][j] == player) {
+              int diag = 1;
+              for (int k = 1; k <= 3; k++)
+                if (board[i - k][j + k] == player)
+                  diag++;
+              if (diag == 4) return 1;
+            }
+    //  verific daca se mai pot adauga piese
+    for (int i = 0; i < 7; i++) {
+        if (board[0][i] == 0) return 0;
+    }
+    // egalitate
+    return 2;
+}
+
+void PlayGame(void *arg)
 {
-  int nr, i = 0;
-	struct thData tdL; 
-	tdL= *((struct thData*)arg);
-	nr++;      
-		      
-  if (write (tdL.player1, "You are first to move", 100) <= 0)
-  {
+  struct thData tdL; 
+  tdL = *((struct thData*)arg);  
+  if (write (tdL.player[0], "You are first to move\n", 100) <= 0) {
     printf("[Thread %d] ",tdL.id);
     perror ("[Thread]Eroare la write() catre client.\n");
   }
-	else
-		printf ("[Thread %d]Mesajul a fost trasmis cu succes catre player1.\n",tdL.id);
-
-  if (write (tdL.player2, "You are second to move", 100) <= 0)
-  {
+  if (write (tdL.player[1], "You are second to move\n", 100) <= 0) {
     printf("[Thread %d] ",tdL.id);
     perror ("[Thread]Eroare la write() catre client.\n");
   }
-	else
-		printf ("[Thread %d]Mesajul a fost trasmis cu succes catre player2.\n",tdL.id);	
+  sleep(1);
+  int player = 0;
+  int board[6][7];
+  char input[100];
+  initializareTabla(&board);
+  while (1) {
+    //  send table to players
+    if (write (tdL.player[0], board, sizeof(board)) <= 0)
+    {
+      printf("[Thread %d] ",tdL.id);
+      perror ("[Thread]Eroare la write() catre client.\n");
+    }
+    if (write (tdL.player[1], board, sizeof(board)) <= 0)
+    {
+      printf("[Thread %d] ",tdL.id);
+      perror ("[Thread]Eroare la write() catre client.\n");
+    }
 
+    // send message to players
+    if (write (tdL.player[1 - player], "Waiting opponent to move.\n", 100) <= 0)
+    {
+      printf("[Thread %d] ",tdL.id);
+      perror ("[Thread]Eroare la write() catre client.\n");
+    }
+    bzero(&input, 100);
+    int col = 0;
+    bool ok = false;
+    while(!ok){
+      while(!validareInput(input)){
+        if (write (tdL.player[player], "Enter your move: ", 100) <= 0)
+        {
+          printf("[Thread %d] ",tdL.id);
+          perror ("[Thread]Eroare la write() catre client.\n");
+        }
+        bzero(&input, 100);
+        if (read(tdL.player[player], &input, 100) <= 0) {
+          printf("[Thread %d]\n",tdL.id);
+          perror ("Eroare la read() de la client.\n");
+        }
+      }
+      col = atoi(input);
+      ok = mutareValida(board, col);
+      bzero(&input, 100);
+    }
+    if (write (tdL.player[player], "ok", 100) <= 0)
+    {
+      printf("[Thread %d] ",tdL.id);
+      perror ("[Thread]Eroare la write() catre client.\n");
+    }
+    adaugaPiesa(board, col, player + 1);
+    int gameState = JocTerminat(board, player + 1);
+    if (gameState != 0) {
+      if (write (tdL.player[0], board, sizeof(board)) <= 0)
+      {
+        printf("[Thread %d] ",tdL.id);
+        perror ("[Thread]Eroare la write() catre client.\n");
+      }
+      if (write (tdL.player[1], board, sizeof(board)) <= 0)
+      {
+        printf("[Thread %d] ",tdL.id);
+        perror ("[Thread]Eroare la write() catre client.\n");
+      }
+    }
+    if (gameState == 1) {
+      if (write (tdL.player[player], "Winer!\n", 100) <= 0)
+      {
+        printf("[Thread %d] ",tdL.id);
+        perror ("[Thread]Eroare la write() catre client.\n");
+      }
+      if (write (tdL.player[1 - player], "Loser!\n", 100) <= 0)
+      {
+        printf("[Thread %d] ",tdL.id);
+        perror ("[Thread]Eroare la write() catre client.\n");
+      }
+    }
+    else if (gameState == 2) {
+      if (write (tdL.player[player], "Draw!\n", 100) <= 0)
+      {
+        printf("[Thread %d] ",tdL.id);
+        perror ("[Thread]Eroare la write() catre client.\n");
+      }
+      if (write (tdL.player[1 - player], "Draw!\n", 100) <= 0)
+      {
+        printf("[Thread %d] ",tdL.id);
+        perror ("[Thread]Eroare la write() catre client.\n");
+      }
+    }
+    player = 1 - player;
+  }
 }
