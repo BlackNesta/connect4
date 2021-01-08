@@ -128,7 +128,7 @@ static void *Treat(void * arg)
 		struct thData tdL; 
 		tdL= *((struct thData*)arg);	
 		fflush (stdout);		 
-		pthread_detach(pthread_self());		
+		pthread_detach(pthread_self());	
 		PlayGame((struct thData*)arg);
 		/* am terminat cu acest client, inchidem conexiunea */
 		close ((intptr_t)arg);
@@ -236,22 +236,55 @@ void PlayGame(void *arg)
   initializareTabla(&board);
   while (1) {
     //  send table to players
-    if (write (tdL.player[0], board, sizeof(board)) <= 0)
+    if (write (tdL.player[player], board, sizeof(board)) <= 0)
     {
       printf("[Thread %d] ",tdL.id);
       perror ("[Thread]Eroare la write() catre client.\n");
+      if (write (tdL.player[1 - player], board, sizeof(board)) <= 0)
+      {
+        printf("[Thread %d] ",tdL.id);
+        perror ("[Thread]Eroare la write() catre client.\n");
+      }
+      if (write (tdL.player[1 - player], "Winer!\n", 100) <= 0)
+      {
+        printf("[Thread %d] ",tdL.id);
+        perror ("[Thread]Eroare la write() catre client.\n");
+      }
+      return;
     }
-    if (write (tdL.player[1], board, sizeof(board)) <= 0)
+    if (write (tdL.player[1 - player], board, sizeof(board)) <= 0)
     {
       printf("[Thread %d] ",tdL.id);
       perror ("[Thread]Eroare la write() catre client.\n");
+      if (write (tdL.player[player], board, sizeof(board)) <= 0)
+      {
+        printf("[Thread %d] ",tdL.id);
+        perror ("[Thread]Eroare la write() catre client.\n");
+      }
+      if (write (tdL.player[player], "Winer!\n", 100) <= 0)
+      {
+        printf("[Thread %d] ",tdL.id);
+        perror ("[Thread]Eroare la write() catre client.\n");
+      }
+      return;
     }
 
     // send message to players
-    if (write (tdL.player[1 - player], "Waiting opponent to move.\n", 100) <= 0)
+    if (write (tdL.player[1 - player], "Waiting opponent to move...", 100) <= 0)
     {
       printf("[Thread %d] ",tdL.id);
       perror ("[Thread]Eroare la write() catre client.\n");
+      if (write (tdL.player[player], board, sizeof(board)) <= 0)
+      {
+        printf("[Thread %d] ",tdL.id);
+        perror ("[Thread]Eroare la write() catre client.\n");
+      }
+      if (write (tdL.player[player], "Winer!\n", 100) <= 0)
+      {
+        printf("[Thread %d] ",tdL.id);
+        perror ("[Thread]Eroare la write() catre client.\n");
+      }
+      return;
     }
     bzero(&input, 100);
     int col = 0;
@@ -262,11 +295,33 @@ void PlayGame(void *arg)
         {
           printf("[Thread %d] ",tdL.id);
           perror ("[Thread]Eroare la write() catre client.\n");
+          if (write (tdL.player[1 - player], board, sizeof(board)) <= 0)
+          {
+            printf("[Thread %d] ",tdL.id);
+            perror ("[Thread]Eroare la write() catre client.\n");
+          }
+          if (write (tdL.player[1 - player], "Winer!\n", 100) <= 0)
+          {
+            printf("[Thread %d] ",tdL.id);
+            perror ("[Thread]Eroare la write() catre client.\n");
+          }
+          return;
         }
         bzero(&input, 100);
         if (read(tdL.player[player], &input, 100) <= 0) {
           printf("[Thread %d]\n",tdL.id);
-          perror ("Eroare la read() de la client.\n");
+          perror ("[Thread]Eroare la write() catre client.\n");
+          if (write (tdL.player[1 - player], board, sizeof(board)) <= 0)
+          {
+            printf("[Thread %d] ",tdL.id);
+            perror ("[Thread]Eroare la write() catre client.\n");
+          }
+          if (write (tdL.player[1 - player], "Winer!\n", 100) <= 0)
+          {
+            printf("[Thread %d] ",tdL.id);
+            perror ("[Thread]Eroare la write() catre client.\n");
+          }
+          return;
         }
       }
       col = atoi(input);
@@ -277,44 +332,85 @@ void PlayGame(void *arg)
     {
       printf("[Thread %d] ",tdL.id);
       perror ("[Thread]Eroare la write() catre client.\n");
+      if (write (tdL.player[1 - player], board, sizeof(board)) <= 0)
+      {
+        printf("[Thread %d] ",tdL.id);
+        perror ("[Thread]Eroare la write() catre client.\n");
+      }
+      if (write (tdL.player[1 - player], "Winer!\n", 100) <= 0)
+      {
+        printf("[Thread %d] ",tdL.id);
+        perror ("[Thread]Eroare la write() catre client.\n");
+      }
+      return;
     }
     adaugaPiesa(board, col, player + 1);
+    //  verific terminarea jocului
     int gameState = JocTerminat(board, player + 1);
     if (gameState != 0) {
-      if (write (tdL.player[0], board, sizeof(board)) <= 0)
+      if (write (tdL.player[player], board, sizeof(board)) <= 0)
       {
         printf("[Thread %d] ",tdL.id);
         perror ("[Thread]Eroare la write() catre client.\n");
+        if (write (tdL.player[1 - player], board, sizeof(board)) <= 0)
+        {
+          printf("[Thread %d] ",tdL.id);
+          perror ("[Thread]Eroare la write() catre client.\n");
+        }
+        if (write (tdL.player[1 - player], "Winer!\n", 100) <= 0)
+        {
+          printf("[Thread %d] ",tdL.id);
+          perror ("[Thread]Eroare la write() catre client.\n");
+        }
+        return;
       }
-      if (write (tdL.player[1], board, sizeof(board)) <= 0)
+      if (write (tdL.player[1 - player], board, sizeof(board)) <= 0)
       {
         printf("[Thread %d] ",tdL.id);
         perror ("[Thread]Eroare la write() catre client.\n");
+        if (write (tdL.player[player], board, sizeof(board)) <= 0)
+        {
+          printf("[Thread %d] ",tdL.id);
+          perror ("[Thread]Eroare la write() catre client.\n");
+        }
+        if (write (tdL.player[player], "Winer!\n", 100) <= 0)
+        {
+          printf("[Thread %d] ",tdL.id);
+          perror ("[Thread]Eroare la write() catre client.\n");
+        }
+        return;
       }
+      initializareTabla(board);
     }
     if (gameState == 1) {
       if (write (tdL.player[player], "Winer!\n", 100) <= 0)
       {
         printf("[Thread %d] ",tdL.id);
         perror ("[Thread]Eroare la write() catre client.\n");
+        return;
       }
       if (write (tdL.player[1 - player], "Loser!\n", 100) <= 0)
       {
         printf("[Thread %d] ",tdL.id);
         perror ("[Thread]Eroare la write() catre client.\n");
+        return;
       }
+      sleep(2);
     }
     else if (gameState == 2) {
       if (write (tdL.player[player], "Draw!\n", 100) <= 0)
       {
         printf("[Thread %d] ",tdL.id);
         perror ("[Thread]Eroare la write() catre client.\n");
+        return;
       }
       if (write (tdL.player[1 - player], "Draw!\n", 100) <= 0)
       {
         printf("[Thread %d] ",tdL.id);
         perror ("[Thread]Eroare la write() catre client.\n");
+        return;
       }
+      sleep(2);
     }
     player = 1 - player;
   }

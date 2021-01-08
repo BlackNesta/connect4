@@ -101,12 +101,15 @@ int main(int argc, char *argv[]) {
           }
         }
       }
-      else if (strcmp(msg, "Waiting opponent to move.\n") == 0) {
+      else if (strcmp(msg, "Waiting opponent to move...") == 0) {
         printf(msg);
       }
       else {
         printf(msg);
-        exit(0);
+        // am terminat si inchidem conexiunea
+        sleep(2);
+        close(sd);
+        return;
       }
     }
   }
