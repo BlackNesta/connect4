@@ -395,7 +395,8 @@ void PlayGame(void *arg)
         perror ("[Thread]Eroare la write() catre client.\n");
         return;
       }
-      sleep(2);
+      return;
+      
     }
     else if (gameState == 2) {
       if (write (tdL.player[player], "Draw!\n", 100) <= 0)
@@ -410,7 +411,7 @@ void PlayGame(void *arg)
         perror ("[Thread]Eroare la write() catre client.\n");
         return;
       }
-      sleep(2);
+      return;
     }
     player = 1 - player;
   }
